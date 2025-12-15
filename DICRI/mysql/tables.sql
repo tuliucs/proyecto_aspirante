@@ -1,3 +1,4 @@
+USE DICRI_DATABASE;
 SET NAMES utf8mb4;
 SET time_zone = '-06:00';
 
