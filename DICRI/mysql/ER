@@ -1,0 +1,313 @@
+@startuml
+hide circle
+skinparam linetype ortho
+
+entity "dependencia" as dependencia {
+  *id_dependencia : BIGINT <<PK>>
+  --
+  nombre : VARCHAR
+  tipo : VARCHAR
+  region : VARCHAR
+  departamento : VARCHAR
+  municipio : VARCHAR
+  direccion : VARCHAR
+  telefono : VARCHAR
+  activo : TINYINT
+}
+
+entity "rol" as rol {
+  *id_rol : BIGINT <<PK>>
+  --
+  nombre : VARCHAR
+  descripcion : VARCHAR
+}
+
+entity "permiso" as permiso {
+  *id_permiso : BIGINT <<PK>>
+  --
+  codigo : VARCHAR
+  descripcion : VARCHAR
+}
+
+entity "rol_permiso" as rol_permiso {
+  *rol_id : BIGINT <<FK>>
+  *permiso_id : BIGINT <<FK>>
+}
+
+entity "usuario" as usuario {
+  *id_usuario : BIGINT <<PK>>
+  --
+  dependencia_id : BIGINT <<FK>>
+  rol_id : BIGINT <<FK>>
+  nombres : VARCHAR
+  apellidos : VARCHAR
+  username : VARCHAR
+  email : VARCHAR
+  password_hash : VARCHAR
+  estado : VARCHAR
+  firma_digital : TEXT
+  created_at : DATETIME
+}
+
+entity "caso" as caso {
+  *id_caso : BIGINT <<PK>>
+  --
+  fiscalia_id : BIGINT <<FK>>
+  fiscal_asignado_id : BIGINT <<FK>>
+  numero_expediente : VARCHAR
+  tipo_delito_id : BIGINT <<FK>>
+  fecha_hora_hecho : DATETIME
+  lugar_hecho : VARCHAR
+  descripcion_hechos : TEXT
+  estado_id : BIGINT <<FK>>
+  created_at : DATETIME
+}
+
+entity "escena" as escena {
+  *id_escena : BIGINT <<PK>>
+  --
+  caso_id : BIGINT <<FK>>
+  fecha_hora_inicio : DATETIME
+  fecha_hora_fin : DATETIME
+  ubicacion_detalle : VARCHAR
+  latitud : DECIMAL
+  longitud : DECIMAL
+  tipo_escena_id : BIGINT <<FK>>
+  observaciones : TEXT
+}
+
+entity "escena_equipo" as escena_equipo {
+  *escena_id : BIGINT <<FK>>
+  *usuario_id : BIGINT <<FK>>
+  rol_en_escena : VARCHAR
+}
+
+entity "indicio" as indicio {
+  *id_indicio : BIGINT <<PK>>
+  --
+  caso_id : BIGINT <<FK>>
+  escena_id : BIGINT <<FK>>
+  codigo_indicio : VARCHAR
+  tipo_indicio_id : BIGINT <<FK>>
+  descripcion : TEXT
+  cantidad : DECIMAL
+  unidad_medida : VARCHAR
+  fecha_hora_recoleccion : DATETIME
+  recolectado_por_id : BIGINT <<FK>>
+  metodo_recoleccion_id : BIGINT <<FK>>
+  embalaje_tipo_id : BIGINT <<FK>>
+  precinto_numero : VARCHAR
+  riesgo_biohazard : TINYINT
+  estado_id : BIGINT <<FK>>
+}
+
+entity "cadena_custodia" as cadena {
+  *id_cadena : BIGINT <<PK>>
+  --
+  indicio_id : BIGINT <<FK>> <<UNIQUE>>
+  fecha_apertura : DATETIME
+  responsable_inicial_id : BIGINT <<FK>>
+  estado : VARCHAR
+  observaciones : TEXT
+}
+
+entity "ubicacion" as ubicacion {
+  *id_ubicacion : BIGINT <<PK>>
+  --
+  dependencia_id : BIGINT <<FK>>
+  tipo : VARCHAR
+  nombre : VARCHAR
+  descripcion : VARCHAR
+  activo : TINYINT
+}
+
+entity "movimiento_custodia" as mov {
+  *id_movimiento : BIGINT <<PK>>
+  --
+  cadena_id : BIGINT <<FK>>
+  tipo_movimiento_id : BIGINT <<FK>>
+  fecha_hora : DATETIME
+  de_usuario_id : BIGINT <<FK>>
+  a_usuario_id : BIGINT <<FK>>
+  de_dependencia_id : BIGINT <<FK>>
+  a_dependencia_id : BIGINT <<FK>>
+  origen_ubicacion_id : BIGINT <<FK>>
+  destino_ubicacion_id : BIGINT <<FK>>
+  condicion_sello : VARCHAR
+  acta_numero : VARCHAR
+  motivo : VARCHAR
+  observaciones : TEXT
+}
+
+entity "ingreso_bodega" as ingreso {
+  *id_ingreso : BIGINT <<PK>>
+  --
+  indicio_id : BIGINT <<FK>>
+  ubicacion_id : BIGINT <<FK>>
+  fecha_ingreso : DATETIME
+  responsable_recibe_id : BIGINT <<FK>>
+  condicion_empaque : VARCHAR
+  observaciones : TEXT
+}
+
+entity "solicitud_peritaje" as solicitud {
+  *id_solicitud : BIGINT <<PK>>
+  --
+  caso_id : BIGINT <<FK>>
+  solicitante_usuario_id : BIGINT <<FK>>
+  solicitante_dependencia_id : BIGINT <<FK>>
+  tipo_solicitud_id : BIGINT <<FK>>
+  prioridad_id : BIGINT <<FK>>
+  fecha_solicitud : DATETIME
+  fecha_requerida : DATETIME
+  estado_id : BIGINT <<FK>>
+  observaciones : TEXT
+}
+
+entity "asignacion_trabajo" as asignacion {
+  *id_asignacion : BIGINT <<PK>>
+  --
+  solicitud_id : BIGINT <<FK>>
+  responsable_id : BIGINT <<FK>>
+  fecha_asignacion : DATETIME
+  fecha_inicio : DATETIME
+  fecha_fin : DATETIME
+  estado_id : BIGINT <<FK>>
+  observaciones : TEXT
+}
+
+entity "analisis" as analisis {
+  *id_analisis : BIGINT <<PK>>
+  --
+  indicio_id : BIGINT <<FK>>
+  tipo_analisis_id : BIGINT <<FK>>
+  perito_id : BIGINT <<FK>>
+  laboratorio_id : BIGINT <<FK>>
+  fecha_inicio : DATETIME
+  fecha_fin : DATETIME
+  metodologia : TEXT
+  resultados_resumen : TEXT
+  conclusiones : TEXT
+  estado_id : BIGINT <<FK>>
+}
+
+entity "informe_pericial" as informe {
+  *id_informe : BIGINT <<PK>>
+  --
+  caso_id : BIGINT <<FK>>
+  solicitud_id : BIGINT <<FK>>
+  numero_informe : VARCHAR
+  fecha_emision : DATETIME
+  emitido_por_id : BIGINT <<FK>>
+  aprobado_por_id : BIGINT <<FK>>
+  estado_id : BIGINT <<FK>>
+  archivo_url : VARCHAR
+  hash_sha256 : CHAR(64)
+}
+
+entity "informe_analisis" as informe_analisis {
+  *informe_id : BIGINT <<FK>>
+  *analisis_id : BIGINT <<FK>>
+}
+
+entity "archivo_digital" as archivo {
+  *id_archivo : BIGINT <<PK>>
+  --
+  indicio_id : BIGINT <<FK>>
+  analisis_id : BIGINT <<FK>>
+  tipo : VARCHAR
+  nombre_original : VARCHAR
+  url : VARCHAR
+  tamano_bytes : BIGINT
+  hash_sha256 : CHAR(64)
+  fecha_carga : DATETIME
+  cargado_por_id : BIGINT <<FK>>
+}
+
+entity "bitacora_auditoria" as audit {
+  *id_evento : BIGINT <<PK>>
+  --
+  usuario_id : BIGINT <<FK>>
+  accion : VARCHAR
+  entidad : VARCHAR
+  registro_id : BIGINT
+  fecha_hora : DATETIME
+  ip : VARCHAR
+  detalle : JSON
+}
+
+# entity "cat_tipo_delito" as c_delito { *id : BIGINT <<PK>>  nombre:VARCHAR }
+# entity "cat_estado_caso" as c_ecaso { *id : BIGINT <<PK>>  nombre:VARCHAR }
+# entity "cat_tipo_escena" as c_esc { *id : BIGINT <<PK>>  nombre:VARCHAR }
+# entity "cat_tipo_indicio" as c_ind { *id : BIGINT <<PK>>  nombre:VARCHAR }
+# entity "cat_metodo_recoleccion" as c_met { *id : BIGINT <<PK>>  nombre:VARCHAR }
+# entity "cat_embalaje" as c_emb { *id : BIGINT <<PK>>  nombre:VARCHAR }
+# entity "cat_estado_indicio" as c_eind { *id : BIGINT <<PK>>  nombre:VARCHAR }
+# entity "cat_tipo_movimiento" as c_mov { *id : BIGINT <<PK>>  nombre:VARCHAR }
+# entity "cat_tipo_solicitud" as c_sol { *id : BIGINT <<PK>>  nombre:VARCHAR }
+# entity "cat_prioridad" as c_pri { *id : BIGINT <<PK>>  nombre:VARCHAR }
+# entity "cat_estado_solicitud" as c_esol { *id : BIGINT <<PK>>  nombre:VARCHAR }
+# entity "cat_estado_asignacion" as c_easg { *id : BIGINT <<PK>>  nombre:VARCHAR }
+# entity "cat_tipo_analisis" as c_tan { *id : BIGINT <<PK>>  nombre:VARCHAR }
+# entity "cat_estado_analisis" as c_ean { *id : BIGINT <<PK>>  nombre:VARCHAR }
+# entity "cat_estado_informe" as c_einf { *id : BIGINT <<PK>>  nombre:VARCHAR }
+
+dependencia ||--{ usuario
+rol ||--{ usuario
+rol ||--{ rol_permiso
+permiso ||--{ rol_permiso
+
+dependencia ||--{ caso
+usuario ||--{ caso : fiscal_asignado
+c_delito ||--{ caso
+c_ecaso ||--{ caso
+
+caso ||--{ escena
+c_esc ||--{ escena
+escena ||--{ escena_equipo
+usuario ||--{ escena_equipo
+
+caso ||--{ indicio
+escena ||--{ indicio
+usuario ||--{ indicio : recolectado_por
+c_ind ||--{ indicio
+c_met ||--{ indicio
+c_emb ||--{ indicio
+c_eind ||--{ indicio
+
+indicio ||--|| cadena
+cadena ||--{ mov
+c_mov ||--{ mov
+dependencia ||--{ ubicacion
+ubicacion ||--{ ingreso
+indicio ||--{ ingreso
+
+caso ||--{ solicitud
+c_sol ||--{ solicitud
+c_pri ||--{ solicitud
+c_esol ||--{ solicitud
+
+solicitud ||--{ asignacion
+usuario ||--{ asignacion
+c_easg ||--{ asignacion
+
+indicio ||--{ analisis
+c_tan ||--{ analisis
+usuario ||--{ analisis : perito
+ubicacion ||--{ analisis : laboratorio
+c_ean ||--{ analisis
+
+caso ||--{ informe
+solicitud ||--{ informe
+usuario ||--{ informe : emitido_por
+usuario ||--{ informe : aprobado_por
+c_einf ||--{ informe
+informe ||--{ informe_analisis
+analisis ||--{ informe_analisis
+
+indicio ||--{ archivo
+analisis ||--{ archivo
+usuario ||--{ archivo
+
+usuario ||--{ audit
+@enduml
