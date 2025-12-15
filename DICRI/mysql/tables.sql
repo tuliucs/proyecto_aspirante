@@ -1,114 +1,39 @@
--- ==========================================
--- Esquema base: Dirección Investigación Criminalística (MySQL 8+)
--- ==========================================
 SET NAMES utf8mb4;
 SET time_zone = '-06:00';
 
--- -------------------------
--- Catálogos
--- -------------------------
-CREATE TABLE cat_tipo_delito (
-  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+-- ==========================================
+-- 1) Catálogos (2 tablas)
+-- ==========================================
+CREATE TABLE catalogo (
+  id_catalogo BIGINT PRIMARY KEY AUTO_INCREMENT,
+  codigo VARCHAR(80) NOT NULL,          -- EJ: ESTADO_CASO, TIPO_INDICIO, PRIORIDAD
   nombre VARCHAR(120) NOT NULL,
+  descripcion VARCHAR(255) NULL,
   activo TINYINT NOT NULL DEFAULT 1,
-  UNIQUE KEY uk_cat_tipo_delito_nombre (nombre)
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_catalogo_codigo (codigo)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE cat_estado_caso (
-  id BIGINT PRIMARY KEY AUTO_INCREMENT,
-  nombre VARCHAR(60) NOT NULL,
-  orden INT NOT NULL DEFAULT 0,
-  UNIQUE KEY uk_cat_estado_caso_nombre (nombre)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-CREATE TABLE cat_tipo_escena (
-  id BIGINT PRIMARY KEY AUTO_INCREMENT,
-  nombre VARCHAR(80) NOT NULL,
-  UNIQUE KEY uk_cat_tipo_escena_nombre (nombre)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-CREATE TABLE cat_tipo_indicio (
-  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+CREATE TABLE catalogo_detalle (
+  id_catalogo_detalle BIGINT PRIMARY KEY AUTO_INCREMENT,
+  catalogo_id BIGINT NOT NULL,
+  codigo VARCHAR(80) NULL,              -- EJ: ABIERTO, CERRADO, ALTA, BAJA
   nombre VARCHAR(120) NOT NULL,
-  UNIQUE KEY uk_cat_tipo_indicio_nombre (nombre)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-CREATE TABLE cat_metodo_recoleccion (
-  id BIGINT PRIMARY KEY AUTO_INCREMENT,
-  nombre VARCHAR(120) NOT NULL,
-  UNIQUE KEY uk_cat_metodo_recoleccion_nombre (nombre)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-CREATE TABLE cat_embalaje (
-  id BIGINT PRIMARY KEY AUTO_INCREMENT,
-  nombre VARCHAR(120) NOT NULL,
-  UNIQUE KEY uk_cat_embalaje_nombre (nombre)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-CREATE TABLE cat_estado_indicio (
-  id BIGINT PRIMARY KEY AUTO_INCREMENT,
-  nombre VARCHAR(60) NOT NULL,
   orden INT NOT NULL DEFAULT 0,
-  UNIQUE KEY uk_cat_estado_indicio_nombre (nombre)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  activo TINYINT NOT NULL DEFAULT 1,
 
-CREATE TABLE cat_tipo_movimiento (
-  id BIGINT PRIMARY KEY AUTO_INCREMENT,
-  nombre VARCHAR(80) NOT NULL,
-  UNIQUE KEY uk_cat_tipo_movimiento_nombre (nombre)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  UNIQUE KEY uk_cat_det_codigo (catalogo_id, codigo),
+  KEY idx_cat_det_catalogo (catalogo_id),
+  KEY idx_cat_det_activo (activo),
 
-CREATE TABLE cat_tipo_solicitud (
-  id BIGINT PRIMARY KEY AUTO_INCREMENT,
-  nombre VARCHAR(120) NOT NULL,
-  UNIQUE KEY uk_cat_tipo_solicitud_nombre (nombre)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-CREATE TABLE cat_prioridad (
-  id BIGINT PRIMARY KEY AUTO_INCREMENT,
-  nombre VARCHAR(40) NOT NULL,
-  nivel INT NOT NULL DEFAULT 0,
-  UNIQUE KEY uk_cat_prioridad_nombre (nombre)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-CREATE TABLE cat_estado_solicitud (
-  id BIGINT PRIMARY KEY AUTO_INCREMENT,
-  nombre VARCHAR(60) NOT NULL,
-  orden INT NOT NULL DEFAULT 0,
-  UNIQUE KEY uk_cat_estado_solicitud_nombre (nombre)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-CREATE TABLE cat_estado_asignacion (
-  id BIGINT PRIMARY KEY AUTO_INCREMENT,
-  nombre VARCHAR(60) NOT NULL,
-  orden INT NOT NULL DEFAULT 0,
-  UNIQUE KEY uk_cat_estado_asignacion_nombre (nombre)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-CREATE TABLE cat_tipo_analisis (
-  id BIGINT PRIMARY KEY AUTO_INCREMENT,
-  nombre VARCHAR(120) NOT NULL,
-  UNIQUE KEY uk_cat_tipo_analisis_nombre (nombre)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-CREATE TABLE cat_estado_analisis (
-  id BIGINT PRIMARY KEY AUTO_INCREMENT,
-  nombre VARCHAR(60) NOT NULL,
-  orden INT NOT NULL DEFAULT 0,
-  UNIQUE KEY uk_cat_estado_analisis_nombre (nombre)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-CREATE TABLE cat_estado_informe (
-  id BIGINT PRIMARY KEY AUTO_INCREMENT,
-  nombre VARCHAR(60) NOT NULL,
-  orden INT NOT NULL DEFAULT 0,
-  UNIQUE KEY uk_cat_estado_informe_nombre (nombre)
+  CONSTRAINT fk_cat_det_catalogo
+    FOREIGN KEY (catalogo_id) REFERENCES catalogo(id_catalogo)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
--- -------------------------
--- Organización / Seguridad
--- -------------------------
+-- ==========================================
+-- 2) Organización / Seguridad
+-- ==========================================
 CREATE TABLE dependencia (
   id_dependencia BIGINT PRIMARY KEY AUTO_INCREMENT,
   nombre VARCHAR(180) NOT NULL,
@@ -158,56 +83,69 @@ CREATE TABLE usuario (
   firma_digital TEXT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+
   UNIQUE KEY uk_usuario_username (username),
   UNIQUE KEY uk_usuario_email (email),
   KEY idx_usuario_dependencia (dependencia_id),
   KEY idx_usuario_rol (rol_id),
+
   CONSTRAINT fk_usuario_dependencia FOREIGN KEY (dependencia_id) REFERENCES dependencia(id_dependencia),
   CONSTRAINT fk_usuario_rol FOREIGN KEY (rol_id) REFERENCES rol(id_rol)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
--- -------------------------
--- Caso / Escena
--- -------------------------
+-- ==========================================
+-- 3) Caso / Escena
+-- ==========================================
 CREATE TABLE caso (
   id_caso BIGINT PRIMARY KEY AUTO_INCREMENT,
   fiscalia_id BIGINT NOT NULL,
   fiscal_asignado_id BIGINT NOT NULL,
   numero_expediente VARCHAR(80) NOT NULL,
-  tipo_delito_id BIGINT NOT NULL,
+
+  -- catalogos (detalle)
+  tipo_delito_id BIGINT NOT NULL,    -- CATALOGO: TIPO_DELITO
+  estado_id BIGINT NOT NULL,         -- CATALOGO: ESTADO_CASO
+
   fecha_hora_hecho DATETIME NULL,
   lugar_hecho VARCHAR(240) NULL,
   descripcion_hechos TEXT NULL,
-  estado_id BIGINT NOT NULL,
+
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+
   UNIQUE KEY uk_caso_numero_expediente (numero_expediente),
   KEY idx_caso_fiscalia (fiscalia_id),
   KEY idx_caso_fiscal (fiscal_asignado_id),
   KEY idx_caso_estado (estado_id),
   KEY idx_caso_tipo_delito (tipo_delito_id),
+
   CONSTRAINT fk_caso_dependencia FOREIGN KEY (fiscalia_id) REFERENCES dependencia(id_dependencia),
   CONSTRAINT fk_caso_fiscal FOREIGN KEY (fiscal_asignado_id) REFERENCES usuario(id_usuario),
-  CONSTRAINT fk_caso_tipo_delito FOREIGN KEY (tipo_delito_id) REFERENCES cat_tipo_delito(id),
-  CONSTRAINT fk_caso_estado FOREIGN KEY (estado_id) REFERENCES cat_estado_caso(id)
+  CONSTRAINT fk_caso_tipo_delito FOREIGN KEY (tipo_delito_id) REFERENCES catalogo_detalle(id_catalogo_detalle),
+  CONSTRAINT fk_caso_estado FOREIGN KEY (estado_id) REFERENCES catalogo_detalle(id_catalogo_detalle)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE escena (
   id_escena BIGINT PRIMARY KEY AUTO_INCREMENT,
   caso_id BIGINT NOT NULL,
+
   fecha_hora_inicio DATETIME NULL,
   fecha_hora_fin DATETIME NULL,
   ubicacion_detalle VARCHAR(240) NULL,
   latitud DECIMAL(10,7) NULL,
   longitud DECIMAL(10,7) NULL,
-  tipo_escena_id BIGINT NULL,
+
+  tipo_escena_id BIGINT NULL,        -- CATALOGO: TIPO_ESCENA
   observaciones TEXT NULL,
+
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
   KEY idx_escena_caso (caso_id),
   KEY idx_escena_tipo (tipo_escena_id),
+
   CONSTRAINT fk_escena_caso FOREIGN KEY (caso_id) REFERENCES caso(id_caso),
-  CONSTRAINT fk_escena_tipo FOREIGN KEY (tipo_escena_id) REFERENCES cat_tipo_escena(id)
+  CONSTRAINT fk_escena_tipo FOREIGN KEY (tipo_escena_id) REFERENCES catalogo_detalle(id_catalogo_detalle)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE escena_equipo (
@@ -220,40 +158,48 @@ CREATE TABLE escena_equipo (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
--- -------------------------
--- Indicio / Cadena de custodia / Bodega
--- -------------------------
+-- ==========================================
+-- 4) Indicio / Custodia / Bodega
+-- ==========================================
 CREATE TABLE indicio (
   id_indicio BIGINT PRIMARY KEY AUTO_INCREMENT,
   caso_id BIGINT NOT NULL,
   escena_id BIGINT NOT NULL,
-  codigo_indicio VARCHAR(80) NOT NULL,
-  tipo_indicio_id BIGINT NOT NULL,
+
+  codigo_indicio VARCHAR(80) NOT NULL,     -- QR/Barcode
+  tipo_indicio_id BIGINT NOT NULL,         -- CATALOGO: TIPO_INDICIO
+
   descripcion TEXT NULL,
   cantidad DECIMAL(12,3) NULL,
   unidad_medida VARCHAR(40) NULL,
+
   fecha_hora_recoleccion DATETIME NULL,
   recolectado_por_id BIGINT NOT NULL,
-  metodo_recoleccion_id BIGINT NULL,
-  embalaje_tipo_id BIGINT NULL,
+
+  metodo_recoleccion_id BIGINT NULL,       -- CATALOGO: METODO_RECOLECCION
+  embalaje_tipo_id BIGINT NULL,            -- CATALOGO: TIPO_EMBALAJE
   precinto_numero VARCHAR(80) NULL,
+
   riesgo_biohazard TINYINT NOT NULL DEFAULT 0,
-  estado_id BIGINT NOT NULL,
+  estado_id BIGINT NOT NULL,               -- CATALOGO: ESTADO_INDICIO
+
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+
   UNIQUE KEY uk_indicio_codigo (codigo_indicio),
   KEY idx_indicio_caso (caso_id),
   KEY idx_indicio_escena (escena_id),
   KEY idx_indicio_tipo (tipo_indicio_id),
   KEY idx_indicio_estado (estado_id),
   KEY idx_indicio_recolectado_por (recolectado_por_id),
+
   CONSTRAINT fk_indicio_caso FOREIGN KEY (caso_id) REFERENCES caso(id_caso),
   CONSTRAINT fk_indicio_escena FOREIGN KEY (escena_id) REFERENCES escena(id_escena),
-  CONSTRAINT fk_indicio_tipo FOREIGN KEY (tipo_indicio_id) REFERENCES cat_tipo_indicio(id),
+  CONSTRAINT fk_indicio_tipo FOREIGN KEY (tipo_indicio_id) REFERENCES catalogo_detalle(id_catalogo_detalle),
   CONSTRAINT fk_indicio_recolector FOREIGN KEY (recolectado_por_id) REFERENCES usuario(id_usuario),
-  CONSTRAINT fk_indicio_metodo FOREIGN KEY (metodo_recoleccion_id) REFERENCES cat_metodo_recoleccion(id),
-  CONSTRAINT fk_indicio_embalaje FOREIGN KEY (embalaje_tipo_id) REFERENCES cat_embalaje(id),
-  CONSTRAINT fk_indicio_estado FOREIGN KEY (estado_id) REFERENCES cat_estado_indicio(id)
+  CONSTRAINT fk_indicio_metodo FOREIGN KEY (metodo_recoleccion_id) REFERENCES catalogo_detalle(id_catalogo_detalle),
+  CONSTRAINT fk_indicio_embalaje FOREIGN KEY (embalaje_tipo_id) REFERENCES catalogo_detalle(id_catalogo_detalle),
+  CONSTRAINT fk_indicio_estado FOREIGN KEY (estado_id) REFERENCES catalogo_detalle(id_catalogo_detalle)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE cadena_custodia (
@@ -263,8 +209,10 @@ CREATE TABLE cadena_custodia (
   responsable_inicial_id BIGINT NOT NULL,
   estado VARCHAR(20) NOT NULL DEFAULT 'ACTIVA',
   observaciones TEXT NULL,
+
   UNIQUE KEY uk_cadena_indicio (indicio_id),
   KEY idx_cadena_responsable (responsable_inicial_id),
+
   CONSTRAINT fk_cadena_indicio FOREIGN KEY (indicio_id) REFERENCES indicio(id_indicio),
   CONSTRAINT fk_cadena_responsable FOREIGN KEY (responsable_inicial_id) REFERENCES usuario(id_usuario)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -272,20 +220,23 @@ CREATE TABLE cadena_custodia (
 CREATE TABLE ubicacion (
   id_ubicacion BIGINT PRIMARY KEY AUTO_INCREMENT,
   dependencia_id BIGINT NOT NULL,
-  tipo VARCHAR(60) NOT NULL,         -- bodega, laboratorio, refrigeracion, etc.
+  tipo VARCHAR(60) NOT NULL,         -- bodega, laboratorio, refrigeracion, digital, etc.
   nombre VARCHAR(160) NOT NULL,
   descripcion VARCHAR(255) NULL,
   activo TINYINT NOT NULL DEFAULT 1,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
   KEY idx_ubicacion_dependencia (dependencia_id),
   KEY idx_ubicacion_tipo (tipo),
+
   CONSTRAINT fk_ubicacion_dependencia FOREIGN KEY (dependencia_id) REFERENCES dependencia(id_dependencia)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE movimiento_custodia (
   id_movimiento BIGINT PRIMARY KEY AUTO_INCREMENT,
   cadena_id BIGINT NOT NULL,
-  tipo_movimiento_id BIGINT NOT NULL,
+
+  tipo_movimiento_id BIGINT NOT NULL,   -- CATALOGO: TIPO_MOVIMIENTO_CUSTODIA
   fecha_hora DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
   de_usuario_id BIGINT NULL,
@@ -309,7 +260,7 @@ CREATE TABLE movimiento_custodia (
   KEY idx_mov_destino_ubic (destino_ubicacion_id),
 
   CONSTRAINT fk_mov_cadena FOREIGN KEY (cadena_id) REFERENCES cadena_custodia(id_cadena),
-  CONSTRAINT fk_mov_tipo FOREIGN KEY (tipo_movimiento_id) REFERENCES cat_tipo_movimiento(id),
+  CONSTRAINT fk_mov_tipo FOREIGN KEY (tipo_movimiento_id) REFERENCES catalogo_detalle(id_catalogo_detalle),
   CONSTRAINT fk_mov_de_usuario FOREIGN KEY (de_usuario_id) REFERENCES usuario(id_usuario),
   CONSTRAINT fk_mov_a_usuario FOREIGN KEY (a_usuario_id) REFERENCES usuario(id_usuario),
   CONSTRAINT fk_mov_de_dep FOREIGN KEY (de_dependencia_id) REFERENCES dependencia(id_dependencia),
@@ -324,30 +275,37 @@ CREATE TABLE ingreso_bodega (
   ubicacion_id BIGINT NOT NULL,
   fecha_ingreso DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   responsable_recibe_id BIGINT NOT NULL,
+
   condicion_empaque VARCHAR(80) NULL,
   observaciones TEXT NULL,
+
   KEY idx_ingreso_indicio (indicio_id),
   KEY idx_ingreso_ubicacion (ubicacion_id),
   KEY idx_ingreso_fecha (fecha_ingreso),
+
   CONSTRAINT fk_ingreso_indicio FOREIGN KEY (indicio_id) REFERENCES indicio(id_indicio),
   CONSTRAINT fk_ingreso_ubicacion FOREIGN KEY (ubicacion_id) REFERENCES ubicacion(id_ubicacion),
   CONSTRAINT fk_ingreso_recibe FOREIGN KEY (responsable_recibe_id) REFERENCES usuario(id_usuario)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
--- -------------------------
--- Solicitudes / Asignaciones
--- -------------------------
+-- ==========================================
+-- 5) Solicitudes / Asignaciones
+-- ==========================================
 CREATE TABLE solicitud_peritaje (
   id_solicitud BIGINT PRIMARY KEY AUTO_INCREMENT,
   caso_id BIGINT NOT NULL,
+
   solicitante_usuario_id BIGINT NULL,
   solicitante_dependencia_id BIGINT NULL,
-  tipo_solicitud_id BIGINT NOT NULL,
-  prioridad_id BIGINT NOT NULL,
+
+  tipo_solicitud_id BIGINT NOT NULL,   -- CATALOGO: TIPO_SOLICITUD
+  prioridad_id BIGINT NOT NULL,        -- CATALOGO: PRIORIDAD
+  estado_id BIGINT NOT NULL,           -- CATALOGO: ESTADO_SOLICITUD
+
   fecha_solicitud DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   fecha_requerida DATETIME NULL,
-  estado_id BIGINT NOT NULL,
+
   observaciones TEXT NULL,
 
   KEY idx_solicitud_caso (caso_id),
@@ -359,19 +317,21 @@ CREATE TABLE solicitud_peritaje (
   CONSTRAINT fk_solicitud_caso FOREIGN KEY (caso_id) REFERENCES caso(id_caso),
   CONSTRAINT fk_solicitud_solicitante_usuario FOREIGN KEY (solicitante_usuario_id) REFERENCES usuario(id_usuario),
   CONSTRAINT fk_solicitud_solicitante_dep FOREIGN KEY (solicitante_dependencia_id) REFERENCES dependencia(id_dependencia),
-  CONSTRAINT fk_solicitud_tipo FOREIGN KEY (tipo_solicitud_id) REFERENCES cat_tipo_solicitud(id),
-  CONSTRAINT fk_solicitud_prioridad FOREIGN KEY (prioridad_id) REFERENCES cat_prioridad(id),
-  CONSTRAINT fk_solicitud_estado FOREIGN KEY (estado_id) REFERENCES cat_estado_solicitud(id)
+  CONSTRAINT fk_solicitud_tipo FOREIGN KEY (tipo_solicitud_id) REFERENCES catalogo_detalle(id_catalogo_detalle),
+  CONSTRAINT fk_solicitud_prioridad FOREIGN KEY (prioridad_id) REFERENCES catalogo_detalle(id_catalogo_detalle),
+  CONSTRAINT fk_solicitud_estado FOREIGN KEY (estado_id) REFERENCES catalogo_detalle(id_catalogo_detalle)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE asignacion_trabajo (
   id_asignacion BIGINT PRIMARY KEY AUTO_INCREMENT,
   solicitud_id BIGINT NOT NULL,
   responsable_id BIGINT NOT NULL,
+
+  estado_id BIGINT NOT NULL,          -- CATALOGO: ESTADO_ASIGNACION
   fecha_asignacion DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   fecha_inicio DATETIME NULL,
   fecha_fin DATETIME NULL,
-  estado_id BIGINT NOT NULL,
+
   observaciones TEXT NULL,
 
   KEY idx_asignacion_solicitud (solicitud_id),
@@ -380,25 +340,30 @@ CREATE TABLE asignacion_trabajo (
 
   CONSTRAINT fk_asignacion_solicitud FOREIGN KEY (solicitud_id) REFERENCES solicitud_peritaje(id_solicitud),
   CONSTRAINT fk_asignacion_responsable FOREIGN KEY (responsable_id) REFERENCES usuario(id_usuario),
-  CONSTRAINT fk_asignacion_estado FOREIGN KEY (estado_id) REFERENCES cat_estado_asignacion(id)
+  CONSTRAINT fk_asignacion_estado FOREIGN KEY (estado_id) REFERENCES catalogo_detalle(id_catalogo_detalle)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
--- -------------------------
--- Análisis / Informes
--- -------------------------
+-- ==========================================
+-- 6) Análisis / Informes
+-- ==========================================
 CREATE TABLE analisis (
   id_analisis BIGINT PRIMARY KEY AUTO_INCREMENT,
   indicio_id BIGINT NOT NULL,
-  tipo_analisis_id BIGINT NOT NULL,
+
+  tipo_analisis_id BIGINT NOT NULL,   -- CATALOGO: TIPO_ANALISIS
   perito_id BIGINT NOT NULL,
   laboratorio_id BIGINT NULL,
+
+  estado_id BIGINT NOT NULL,          -- CATALOGO: ESTADO_ANALISIS
+
   fecha_inicio DATETIME NULL,
   fecha_fin DATETIME NULL,
+
   metodologia TEXT NULL,
   resultados_resumen TEXT NULL,
   conclusiones TEXT NULL,
-  estado_id BIGINT NOT NULL,
+
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
 
@@ -409,23 +374,28 @@ CREATE TABLE analisis (
   KEY idx_analisis_laboratorio (laboratorio_id),
 
   CONSTRAINT fk_analisis_indicio FOREIGN KEY (indicio_id) REFERENCES indicio(id_indicio),
-  CONSTRAINT fk_analisis_tipo FOREIGN KEY (tipo_analisis_id) REFERENCES cat_tipo_analisis(id),
+  CONSTRAINT fk_analisis_tipo FOREIGN KEY (tipo_analisis_id) REFERENCES catalogo_detalle(id_catalogo_detalle),
   CONSTRAINT fk_analisis_perito FOREIGN KEY (perito_id) REFERENCES usuario(id_usuario),
   CONSTRAINT fk_analisis_laboratorio FOREIGN KEY (laboratorio_id) REFERENCES ubicacion(id_ubicacion),
-  CONSTRAINT fk_analisis_estado FOREIGN KEY (estado_id) REFERENCES cat_estado_analisis(id)
+  CONSTRAINT fk_analisis_estado FOREIGN KEY (estado_id) REFERENCES catalogo_detalle(id_catalogo_detalle)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE informe_pericial (
   id_informe BIGINT PRIMARY KEY AUTO_INCREMENT,
   caso_id BIGINT NOT NULL,
   solicitud_id BIGINT NOT NULL,
+
   numero_informe VARCHAR(80) NOT NULL,
   fecha_emision DATETIME NULL,
+
   emitido_por_id BIGINT NOT NULL,
   aprobado_por_id BIGINT NULL,
-  estado_id BIGINT NOT NULL,
+
+  estado_id BIGINT NOT NULL,          -- CATALOGO: ESTADO_INFORME
+
   archivo_url VARCHAR(255) NULL,
   hash_sha256 CHAR(64) NULL,
+
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
 
@@ -438,7 +408,7 @@ CREATE TABLE informe_pericial (
   CONSTRAINT fk_informe_solicitud FOREIGN KEY (solicitud_id) REFERENCES solicitud_peritaje(id_solicitud),
   CONSTRAINT fk_informe_emitido_por FOREIGN KEY (emitido_por_id) REFERENCES usuario(id_usuario),
   CONSTRAINT fk_informe_aprobado_por FOREIGN KEY (aprobado_por_id) REFERENCES usuario(id_usuario),
-  CONSTRAINT fk_informe_estado FOREIGN KEY (estado_id) REFERENCES cat_estado_informe(id)
+  CONSTRAINT fk_informe_estado FOREIGN KEY (estado_id) REFERENCES catalogo_detalle(id_catalogo_detalle)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE informe_analisis (
@@ -450,13 +420,15 @@ CREATE TABLE informe_analisis (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
--- -------------------------
--- Archivos digitales (con integridad)
--- -------------------------
+-- ==========================================
+-- 7) Archivos digitales (integridad)
+-- ==========================================
 CREATE TABLE archivo_digital (
   id_archivo BIGINT PRIMARY KEY AUTO_INCREMENT,
+
   indicio_id BIGINT NULL,
   analisis_id BIGINT NULL,
+
   tipo VARCHAR(40) NOT NULL,                 -- imagen/video/audio/doc/dump/hashlist etc.
   nombre_original VARCHAR(220) NOT NULL,
   url VARCHAR(255) NOT NULL,
@@ -476,15 +448,17 @@ CREATE TABLE archivo_digital (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
--- -------------------------
--- Auditoría (JSON para "antes/después", metadatos)
--- -------------------------
+-- ==========================================
+-- 8) Auditoría
+-- ==========================================
 CREATE TABLE bitacora_auditoria (
   id_evento BIGINT PRIMARY KEY AUTO_INCREMENT,
   usuario_id BIGINT NOT NULL,
+
   accion VARCHAR(40) NOT NULL,        -- CREATE/UPDATE/DELETE/VIEW/EXPORT/APPROVE/ANNUL etc.
   entidad VARCHAR(80) NOT NULL,       -- nombre tabla o entidad lógica
   registro_id BIGINT NULL,
+
   fecha_hora DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   ip VARCHAR(60) NULL,
   detalle JSON NULL,
