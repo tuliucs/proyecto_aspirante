@@ -1,0 +1,31 @@
+{
+  "name": "api-rest",
+  "version": "1.0.0",
+  "description": "DICRI api-rest para actualización de expedientes.",
+  "keywords": [
+    "api",
+    "rest",
+    "node",
+    "js"
+  ],
+  
+  "homepage": "https://github.com/tuliucs/proyecto_aspirante#readme",
+  "bugs": {
+    "url": "https://github.com/tuliucs/proyecto_aspirante/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tuliucs/proyecto_aspirante.git"
+  },
+  "license": "ISC",
+  "author": "Tulio Morales (tuliucs)",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "express": "^5.2.1"
+  },
+  "type":"module"
+}
