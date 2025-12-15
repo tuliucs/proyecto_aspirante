@@ -7,17 +7,16 @@ services:
       MYSQL_ROOT_PASSWORD: admin123__!
       MYSQL_DATABASE: dicri_database
       MYSQL_USER: mpuser
-      MYSQL_PASSWORD: mppass123
+      MYSQL_PASSWORD: mppass123__!
       TZ: America/Guatemala
     ports:
       - "3306:3306"
     volumes:
       - mp_mysql_data:/var/lib/mysql
-      - ./initdb:/docker-entrypoint-initdb.d:ro
+      - ./mysql:/docker-entrypoint-initdb.d:ro
     command: >
       --default-authentication-plugin=mysql-native-password
       --character-set-server=utf8mb4
       --collation-server=utf8mb4_0900_ai_ci
-
 volumes:
   mp_mysql_data:
